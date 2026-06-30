@@ -5,8 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-//feing las usa como contrato para consttruir la peticion 
-@FeignClient(name = "atencion-service", url = "http://localhost:8083")
+@FeignClient(name = "atencion-service")
 public interface AtencionClient {
 
     @GetMapping("/api/atenciones/{id}/detalle")

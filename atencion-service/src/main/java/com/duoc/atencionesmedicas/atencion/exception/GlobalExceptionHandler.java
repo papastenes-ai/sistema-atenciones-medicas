@@ -13,7 +13,8 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
-    public ResponseEntity<?> manejarRecursoNoEncontrado(RecursoNoEncontradoException ex) {
+    public ResponseEntity<Map<String, String>> manejarRecursoNoEncontrado(
+            RecursoNoEncontradoException ex) {
 
         Map<String, String> respuesta = new HashMap<>();
         respuesta.put("error", ex.getMessage());
@@ -21,8 +22,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
     }
 
+    @ExceptionHandler(ReglaNegocioException.class)
+    public ResponseEntity<Map<String, String>> manejarReglaNegocio(
+            ReglaNegocioException ex) {
+
+        Map<String, String> respuesta = new HashMap<>();
+        respuesta.put("error", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> manejarValidaciones(MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, String>> manejarValidaciones(
+            MethodArgumentNotValidException ex) {
 
         Map<String, String> errores = new HashMap<>();
 
@@ -34,7 +46,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> manejarErrorGeneral(Exception ex) {
+    public ResponseEntity<Map<String, String>> manejarErrorGeneral(Exception ex) {
 
         Map<String, String> respuesta = new HashMap<>();
         respuesta.put("error", "Error interno del servidor");

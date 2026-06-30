@@ -1,132 +1,124 @@
 package com.duoc.atencionesmedicas.usuario.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
+import com.duoc.atencionesmedicas.usuario.dto.UsuarioRequestDTO;
+import com.duoc.atencionesmedicas.usuario.dto.UsuarioResponseDTO;
 import com.duoc.atencionesmedicas.usuario.exception.RecursoNoEncontradoException;
 import com.duoc.atencionesmedicas.usuario.model.Usuario;
 import com.duoc.atencionesmedicas.usuario.repository.UsuarioRepository;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
 
-    public List<Usuario> listarUsuarios() {
-        return usuarioRepository.findAll();
+    private UsuarioResponseDTO mapToResponseDTO(Usuario usuario) {
+        return new UsuarioResponseDTO(
+                usuario.getIdUsuario(),
+                usuario.getUsername(),
+                usuario.getCorreo(),
+                usuario.getRol(),
+                usuario.getEstado()
+        );
     }
 
-    public Usuario buscarPorId(Integer id) {
-
+    private Usuario buscarEntidadPorId(Integer id) {
         return usuarioRepository.findById(id)
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException(
-                                "Usuario no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado con id: " + id));
     }
 
-    public Usuario buscarPorUsername(String username) {
-
-        return usuarioRepository.findByUsername(username)
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException(
-                                "Usuario no encontrado: " + username));
+    public List<UsuarioResponseDTO> listarUsuarios() {
+        return usuarioRepository.findAll()
+                .stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<Usuario> buscarPorRol(String rol) {
+    public UsuarioResponseDTO buscarPorId(Integer id) {
+        Usuario usuario = buscarEntidadPorId(id);
+        return mapToResponseDTO(usuario);
+    }
 
-        List<Usuario> usuarios =
-                usuarioRepository.findByRol(rol);
+    public UsuarioResponseDTO buscarPorUsername(String username) {
+        Usuario usuario = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado: " + username));
+
+        return mapToResponseDTO(usuario);
+    }
+
+    public List<UsuarioResponseDTO> buscarPorRol(String rol) {
+        List<Usuario> usuarios = usuarioRepository.findByRol(rol);
 
         if (usuarios.isEmpty()) {
-
             throw new RecursoNoEncontradoException(
                     "No existen usuarios con rol: " + rol);
         }
 
-        return usuarios;
+        return usuarios.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<Usuario> buscarPorEstado(String estado) {
-
-        List<Usuario> usuarios =
-                usuarioRepository.findByEstado(estado);
+    public List<UsuarioResponseDTO> buscarPorEstado(String estado) {
+        List<Usuario> usuarios = usuarioRepository.findByEstado(estado);
 
         if (usuarios.isEmpty()) {
-
             throw new RecursoNoEncontradoException(
                     "No existen usuarios con estado: " + estado);
         }
 
-        return usuarios;
+        return usuarios.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public Usuario guardarUsuario(Usuario usuario) {
+    public UsuarioResponseDTO guardarUsuario(UsuarioRequestDTO dto) {
+        Usuario usuario = new Usuario(
+                null,
+                dto.getUsername(),
+                dto.getPassword(),
+                dto.getCorreo(),
+                dto.getRol(),
+                dto.getEstado()
+        );
 
-        try {
+        Usuario usuarioGuardado = usuarioRepository.save(usuario);
 
-            return usuarioRepository.save(usuario);
+        log.info("Usuario guardado correctamente con id: {}",
+                usuarioGuardado.getIdUsuario());
 
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Error al guardar el usuario: " + e.getMessage());
-        }
+        return mapToResponseDTO(usuarioGuardado);
     }
 
-    public Usuario actualizarUsuario(Integer id,Usuario usuarioActualizado) {
+    public UsuarioResponseDTO actualizarUsuario(Integer id, UsuarioRequestDTO dto) {
+        Usuario usuario = buscarEntidadPorId(id);
 
-        try {
+        usuario.setUsername(dto.getUsername());
+        usuario.setPassword(dto.getPassword());
+        usuario.setCorreo(dto.getCorreo());
+        usuario.setRol(dto.getRol());
+        usuario.setEstado(dto.getEstado());
 
-            Usuario usuario = buscarPorId(id);
+        Usuario usuarioActualizado = usuarioRepository.save(usuario);
 
-            usuario.setUsername(
-                    usuarioActualizado.getUsername());
+        log.info("Usuario id {} actualizado correctamente.", id);
 
-            usuario.setPassword(
-                    usuarioActualizado.getPassword());
-
-            usuario.setCorreo(
-                    usuarioActualizado.getCorreo());
-
-            usuario.setRol(
-                    usuarioActualizado.getRol());
-
-            usuario.setEstado(
-                    usuarioActualizado.getEstado());
-
-            return usuarioRepository.save(usuario);
-
-        } catch (RecursoNoEncontradoException e) {
-
-            throw e;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Error al actualizar el usuario: " + e.getMessage());
-        }
+        return mapToResponseDTO(usuarioActualizado);
     }
 
     public void eliminarUsuario(Integer id) {
+        Usuario usuario = buscarEntidadPorId(id);
+        usuarioRepository.delete(usuario);
 
-        try {
-
-            Usuario usuario = buscarPorId(id);
-
-            usuarioRepository.delete(usuario);
-
-        } catch (RecursoNoEncontradoException e) {
-
-            throw e;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Error al eliminar el usuario: " + e.getMessage());
-        }
+        log.info("Usuario id {} eliminado correctamente.", id);
     }
 }

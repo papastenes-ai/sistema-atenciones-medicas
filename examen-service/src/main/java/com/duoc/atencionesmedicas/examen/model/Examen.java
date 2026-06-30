@@ -1,8 +1,6 @@
 package com.duoc.atencionesmedicas.examen.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,19 +14,18 @@ public class Examen {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_examen")
     private Integer idExamen;
 
-    @NotBlank(message = "El nombre del examen es obligatorio")
-    @Column(nullable = false)
+    @Column(name = "nombre_examen", nullable = false)
     private String nombreExamen;
 
     @Column(nullable = false)
     private String resultado;
 
-    @Column(nullable = false)
+    @Column(name = "fecha_examen", nullable = false)
     private String fechaExamen;
 
-    @NotNull(message = "El id de atención es obligatorio")
-    @Column(nullable = false)
+    @Column(name = "atencion_id", nullable = false)
     private Integer atencionId;
 }

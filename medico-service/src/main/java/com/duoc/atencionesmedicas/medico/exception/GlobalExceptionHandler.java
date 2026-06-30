@@ -13,7 +13,9 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
-    public ResponseEntity<?> manejarRecursoNoEncontrado(RecursoNoEncontradoException ex) {
+    public ResponseEntity<Map<String, String>> manejarRecursoNoEncontrado(
+            RecursoNoEncontradoException ex) {
+
         Map<String, String> respuesta = new HashMap<>();
         respuesta.put("error", ex.getMessage());
 
@@ -21,7 +23,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> manejarValidaciones(MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, String>> manejarValidaciones(
+            MethodArgumentNotValidException ex) {
+
         Map<String, String> errores = new HashMap<>();
 
         ex.getBindingResult().getFieldErrors().forEach(error ->
@@ -32,10 +36,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> manejarErrorGeneral(Exception ex) {
+    public ResponseEntity<Map<String, String>> manejarErrorGeneral(Exception ex) {
+
         Map<String, String> respuesta = new HashMap<>();
         respuesta.put("error", "Error interno del servidor");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(respuesta);
     }
+
+
+    
 }

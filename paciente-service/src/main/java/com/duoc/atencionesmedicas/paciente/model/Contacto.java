@@ -1,6 +1,7 @@
 package com.duoc.atencionesmedicas.paciente.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
@@ -16,6 +17,7 @@ public class Contacto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_contacto")
     private Integer idContacto;
 
     @Column(nullable = false)

@@ -1,13 +1,14 @@
 package com.duoc.atencionesmedicas.paciente.config;
 
+import java.util.List;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.duoc.atencionesmedicas.paciente.model.Contacto;
 import com.duoc.atencionesmedicas.paciente.model.Direccion;
 import com.duoc.atencionesmedicas.paciente.model.Paciente;
-import com.duoc.atencionesmedicas.paciente.repository.ContactoRepository;
-import com.duoc.atencionesmedicas.paciente.repository.DireccionRepository;
 import com.duoc.atencionesmedicas.paciente.repository.PacienteRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -19,21 +20,20 @@ import lombok.extern.slf4j.Slf4j;
 public class DataLoader implements CommandLineRunner {
 
     private final PacienteRepository pacienteRepository;
-    private final ContactoRepository contactoRepository;
-    private final DireccionRepository direccionRepository;
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
 
         if (pacienteRepository.count() > 0) {
-            log.info(">>>Los datos de pacientes ya existen.");
+            log.info(">>> Los datos de pacientes ya existen.");
             return;
         }
 
-        Paciente paciente1 = new Paciente(null, "12345678-9", "Carlos", "Muñoz", 34, null, null);
-        Paciente paciente2 = new Paciente(null, "98765432-1", "Fernanda", "Rojas", 27, null, null);
-        Paciente paciente3 = new Paciente(null, "15478963-2", "Daniela", "Castillo", 41, null, null);
-        Paciente paciente4 = new Paciente(null, "20123456-7", "Matías", "Herrera", 22, null, null);
+        Paciente paciente1 = new Paciente(null, "Carlos", "Muñoz", "12345678-9", 34, "carlos@correo.cl", "912345678");
+        Paciente paciente2 = new Paciente(null, "Fernanda", "Rojas", "98765432-1", 27, "fernanda@correo.cl", "987654321");
+        Paciente paciente3 = new Paciente(null, "Daniela", "Castillo", "15478963-2", 41, "daniela@correo.cl", "956789123");
+        Paciente paciente4 = new Paciente(null, "Matías", "Herrera", "20123456-7", 22, "matias@correo.cl", "923456789");
 
         Contacto contacto1 = new Contacto(null, "912345678", "carlos@correo.cl", paciente1);
         Contacto contacto2 = new Contacto(null, "987654321", "fernanda@correo.cl", paciente2);
@@ -55,21 +55,8 @@ public class DataLoader implements CommandLineRunner {
         paciente3.setDireccion(direccion3);
         paciente4.setDireccion(direccion4);
 
-        pacienteRepository.save(paciente1);
-        pacienteRepository.save(paciente2);
-        pacienteRepository.save(paciente3);
-        pacienteRepository.save(paciente4);
+        pacienteRepository.saveAll(List.of(paciente1, paciente2, paciente3, paciente4));
 
-        contactoRepository.save(contacto1);
-        contactoRepository.save(contacto2);
-        contactoRepository.save(contacto3);
-        contactoRepository.save(contacto4);
-
-        direccionRepository.save(direccion1);
-        direccionRepository.save(direccion2);
-        direccionRepository.save(direccion3);
-        direccionRepository.save(direccion4);
-
-        log.info(">>>Datos de pacientes cargados correctamente.");
+        log.info(">>> Datos de pacientes cargados correctamente.");
     }
 }

@@ -1,8 +1,6 @@
 package com.duoc.atencionesmedicas.medicamento.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,21 +14,18 @@ public class Medicamento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_medicamento")
     private Integer idMedicamento;
 
-    @NotBlank(message = "El nombre del medicamento es obligatorio")
-    @Column(nullable = false)
-    private String nombre;
+    @Column(name = "nombre_medicamento", nullable = false)
+    private String nombreMedicamento;
 
-    @NotBlank(message = "La descripción es obligatoria")
     @Column(nullable = false)
     private String descripcion;
 
-    @NotBlank(message = "La presentación es obligatoria")
     @Column(nullable = false)
-    private String presentacion;
+    private String laboratorio;
 
-    @NotNull(message = "El stock es obligatorio")
     @Column(nullable = false)
     private Integer stock;
 }

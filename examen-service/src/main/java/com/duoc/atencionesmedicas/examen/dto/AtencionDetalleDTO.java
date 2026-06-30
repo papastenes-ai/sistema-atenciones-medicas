@@ -10,7 +10,6 @@ public class AtencionDetalleDTO {
     private String hora;
     private String motivoConsulta;
     private String observacion;
-
     private PacienteDTO paciente;
     private MedicoDTO medico;
 }

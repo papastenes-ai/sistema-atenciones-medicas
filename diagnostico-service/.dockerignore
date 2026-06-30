@@ -1,0 +1,20 @@
+# Ignora la carpeta interna de Git.
+.git/
+# Ignora archivos de configuración de Git.
+.gitignore
+# Ignora documentación que no se necesita para construir la imagen.
+README.md
+HELP.md
+# Ignora carpetas de editores/IDE.
+.vscode/
+.idea/
+# Ignora archivos propios de IDE.
+*.iml
+# Ignora logs.
+*.log
+# Ignora el código fuente porque el Dockerfile usa el .jar ya compilado en target/.
+src/
+# Ignora Maven Wrapper, porque no compilamos dentro del contenedor.
+.mvn/
+mvnw
+mvnw.cmd

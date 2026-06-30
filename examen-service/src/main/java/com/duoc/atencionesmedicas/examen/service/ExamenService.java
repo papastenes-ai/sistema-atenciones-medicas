@@ -1,18 +1,23 @@
 package com.duoc.atencionesmedicas.examen.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.duoc.atencionesmedicas.examen.client.AtencionClient;
 import com.duoc.atencionesmedicas.examen.dto.AtencionDetalleDTO;
 import com.duoc.atencionesmedicas.examen.dto.ExamenDetalleDTO;
+import com.duoc.atencionesmedicas.examen.dto.ExamenRequestDTO;
+import com.duoc.atencionesmedicas.examen.dto.ExamenResponseDTO;
 import com.duoc.atencionesmedicas.examen.exception.RecursoNoEncontradoException;
+import com.duoc.atencionesmedicas.examen.exception.ReglaNegocioException;
 import com.duoc.atencionesmedicas.examen.model.Examen;
 import com.duoc.atencionesmedicas.examen.repository.ExamenRepository;
-
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExamenService {
@@ -20,120 +25,130 @@ public class ExamenService {
     private final ExamenRepository examenRepository;
     private final AtencionClient atencionClient;
 
-    public List<Examen> listarExamenes() {
-        return examenRepository.findAll();
+    private ExamenResponseDTO mapToResponseDTO(Examen examen) {
+        return new ExamenResponseDTO(
+                examen.getIdExamen(),
+                examen.getNombreExamen(),
+                examen.getResultado(),
+                examen.getFechaExamen(),
+                examen.getAtencionId()
+        );
     }
 
-    public Examen buscarPorId(Integer id) {
-
+    private Examen buscarEntidadPorId(Integer id) {
         return examenRepository.findById(id)
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException(
-                                "Examen no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Examen no encontrado con id: " + id));
     }
 
-    public List<Examen> buscarPorAtencionId(Integer atencionId) {
+    private void validarAtencion(Integer atencionId) {
+        try {
+            atencionClient.obtenerAtencionPorId(atencionId);
+            log.info("Atención id {} validada correctamente mediante Feign.", atencionId);
 
-        List<Examen> examenes =
-                examenRepository.findByAtencionId(atencionId);
+        } catch (FeignException.NotFound e) {
+            log.warn("Atención id {} no existe en atencion-service.", atencionId);
+            throw new ReglaNegocioException(
+                    "No se puede registrar el examen. La atención con id "
+                            + atencionId + " no existe.");
+
+        } catch (FeignException e) {
+            log.error("Error al comunicarse con atencion-service: {}", e.getMessage());
+            throw new ReglaNegocioException(
+                    "No se pudo validar la atención. Servicio atención no disponible.");
+        }
+    }
+
+    public List<ExamenResponseDTO> listarExamenes() {
+        return examenRepository.findAll()
+                .stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public ExamenResponseDTO buscarPorId(Integer id) {
+        Examen examen = buscarEntidadPorId(id);
+        return mapToResponseDTO(examen);
+    }
+
+    public List<ExamenResponseDTO> buscarPorAtencionId(Integer atencionId) {
+        List<Examen> examenes = examenRepository.findByAtencionId(atencionId);
 
         if (examenes.isEmpty()) {
-
             throw new RecursoNoEncontradoException(
                     "No existen exámenes para la atención id: " + atencionId);
         }
 
-        return examenes;
+        return examenes.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<Examen> buscarPorNombreExamen(String nombreExamen) {
-
+    public List<ExamenResponseDTO> buscarPorNombreExamen(String nombreExamen) {
         List<Examen> examenes =
-                examenRepository.findByNombreExamenContainingIgnoreCase(
-                        nombreExamen);
+                examenRepository.findByNombreExamenContainingIgnoreCase(nombreExamen);
 
         if (examenes.isEmpty()) {
-
             throw new RecursoNoEncontradoException(
                     "No existen exámenes con nombre: " + nombreExamen);
         }
 
-        return examenes;
+        return examenes.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public Examen guardarExamen(Examen examen) {
+    public ExamenResponseDTO guardarExamen(ExamenRequestDTO dto) {
+        validarAtencion(dto.getAtencionId());
 
-        try {
+        Examen examen = new Examen(
+                null,
+                dto.getNombreExamen(),
+                dto.getResultado(),
+                dto.getFechaExamen(),
+                dto.getAtencionId()
+        );
 
-            return examenRepository.save(examen);
+        Examen examenGuardado = examenRepository.save(examen);
 
-        } catch (Exception e) {
+        log.info("Examen guardado correctamente con id: {}",
+                examenGuardado.getIdExamen());
 
-            throw new RuntimeException(
-                    "Error al guardar el examen: " + e.getMessage());
-        }
+        return mapToResponseDTO(examenGuardado);
     }
 
-    public Examen actualizarExamen(Integer id,
-                                   Examen examenActualizado) {
+    public ExamenResponseDTO actualizarExamen(Integer id, ExamenRequestDTO dto) {
+        Examen examen = buscarEntidadPorId(id);
 
-        try {
+        validarAtencion(dto.getAtencionId());
 
-            Examen examen = buscarPorId(id);
+        examen.setNombreExamen(dto.getNombreExamen());
+        examen.setResultado(dto.getResultado());
+        examen.setFechaExamen(dto.getFechaExamen());
+        examen.setAtencionId(dto.getAtencionId());
 
-            examen.setNombreExamen(
-                    examenActualizado.getNombreExamen());
+        Examen examenActualizado = examenRepository.save(examen);
 
-            examen.setResultado(
-                    examenActualizado.getResultado());
+        log.info("Examen id {} actualizado correctamente.", id);
 
-            examen.setFechaExamen(
-                    examenActualizado.getFechaExamen());
-
-            examen.setAtencionId(
-                    examenActualizado.getAtencionId());
-
-            return examenRepository.save(examen);
-
-        } catch (RecursoNoEncontradoException e) {
-
-            throw e;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Error al actualizar el examen: " + e.getMessage());
-        }
+        return mapToResponseDTO(examenActualizado);
     }
 
     public void eliminarExamen(Integer id) {
+        Examen examen = buscarEntidadPorId(id);
+        examenRepository.delete(examen);
 
-        try {
-
-            Examen examen = buscarPorId(id);
-
-            examenRepository.delete(examen);
-
-        } catch (RecursoNoEncontradoException e) {
-
-            throw e;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Error al eliminar el examen: " + e.getMessage());
-        }
+        log.info("Examen id {} eliminado correctamente.", id);
     }
 
     public ExamenDetalleDTO buscarDetallePorId(Integer id) {
+        Examen examen = buscarEntidadPorId(id);
 
         try {
-
-            Examen examen = buscarPorId(id);
-
             AtencionDetalleDTO atencion =
-                    atencionClient.obtenerAtencionPorId(
-                            examen.getAtencionId());
+                    atencionClient.obtenerAtencionPorId(examen.getAtencionId());
+
+            log.info("Detalle de examen id {} construido correctamente.", id);
 
             return new ExamenDetalleDTO(
                     examen.getIdExamen(),
@@ -143,14 +158,16 @@ public class ExamenService {
                     atencion
             );
 
-        } catch (RecursoNoEncontradoException e) {
+        } catch (FeignException.NotFound e) {
+            log.warn("No se encontró la atención asociada al examen id {}.", id);
+            throw new ReglaNegocioException(
+                    "No se pudo construir el detalle. La atención asociada no existe.");
 
-            throw e;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Error al obtener el detalle del examen: " + e.getMessage());
+        } catch (FeignException e) {
+            log.error("Error al consultar atencion-service para detalle de examen: {}",
+                    e.getMessage());
+            throw new ReglaNegocioException(
+                    "No se pudo construir el detalle del examen. Servicio atención no disponible.");
         }
     }
 }

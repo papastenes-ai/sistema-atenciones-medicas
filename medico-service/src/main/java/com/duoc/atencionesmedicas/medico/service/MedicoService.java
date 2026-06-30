@@ -1,98 +1,129 @@
 package com.duoc.atencionesmedicas.medico.service;
 
-import java.util.List;
-
+import com.duoc.atencionesmedicas.medico.dto.MedicoRequestDTO;
+import com.duoc.atencionesmedicas.medico.dto.MedicoResponseDTO;
+import com.duoc.atencionesmedicas.medico.exception.RecursoNoEncontradoException;
+import com.duoc.atencionesmedicas.medico.model.Especialidad;
+import com.duoc.atencionesmedicas.medico.model.Medico;
+import com.duoc.atencionesmedicas.medico.repository.EspecialidadRepository;
+import com.duoc.atencionesmedicas.medico.repository.MedicoRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import com.duoc.atencionesmedicas.medico.exception.RecursoNoEncontradoException;
-import com.duoc.atencionesmedicas.medico.model.Medico;
-import com.duoc.atencionesmedicas.medico.repository.MedicoRepository;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import lombok.RequiredArgsConstructor;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MedicoService {
 
     private final MedicoRepository medicoRepository;
+    private final EspecialidadRepository especialidadRepository;
 
-    public List<Medico> listarMedicos() {
-        return medicoRepository.findAll();
+    private MedicoResponseDTO mapToResponseDTO(Medico medico) {
+
+    Integer especialidadId = null;
+    String especialidadNombre = null;
+
+    if (medico.getEspecialidad() != null) {
+        especialidadId = medico.getEspecialidad().getIdEspecialidad();
+        especialidadNombre = medico.getEspecialidad().getNombreEspecialidad();
     }
 
-    public Medico buscarPorId(Integer id) {
+    return new MedicoResponseDTO(
+            medico.getIdMedico(),
+            medico.getRut(),
+            medico.getNombre(),
+            medico.getApellido(),
+            medico.getCorreo(),
+            medico.getTelefono(),
+            especialidadId,
+            especialidadNombre
+    );
+}
+    private Medico buscarEntidadPorId(Integer id) {
         return medicoRepository.findById(id)
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException("Médico no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Médico no encontrado con id: " + id));
     }
 
-    public Medico buscarPorRut(String rut) {
-        return medicoRepository.findByRut(rut)
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException("Médico no encontrado con rut: " + rut));
+    private Especialidad buscarEspecialidadPorId(Integer id) {
+        return especialidadRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Especialidad no encontrada con id: " + id));
     }
 
-    public List<Medico> buscarPorApellido(String apellido) {
+    public List<MedicoResponseDTO> listarMedicos() {
+        return medicoRepository.findAll()
+                .stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
 
-        List<Medico> medicos = medicoRepository.findByApellido(apellido);
+    public MedicoResponseDTO buscarPorId(Integer id) {
+        Medico medico = buscarEntidadPorId(id);
+        return mapToResponseDTO(medico);
+    }
+
+    public List<MedicoResponseDTO> buscarPorEspecialidad(String especialidad) {
+        List<Medico> medicos =
+        medicoRepository.findByEspecialidadNombreEspecialidadContainingIgnoreCase(especialidad);
 
         if (medicos.isEmpty()) {
             throw new RecursoNoEncontradoException(
-                    "No existen médicos con apellido: " + apellido);
+                    "No existen médicos con especialidad: " + especialidad);
         }
 
-        return medicos;
+        return medicos.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public Medico guardarMedico(Medico medico) {
+    public MedicoResponseDTO guardarMedico(MedicoRequestDTO dto) {
+        Especialidad especialidad = buscarEspecialidadPorId(dto.getEspecialidadId());
 
-        try {
-            return medicoRepository.save(medico);
+        Medico medico = new Medico(
+                null,
+                dto.getRut(),
+                dto.getNombre(),
+                dto.getApellido(),
+                dto.getCorreo(),
+                dto.getTelefono(),
+                especialidad
+        );
 
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error al guardar el médico: " + e.getMessage());
-        }
+        Medico medicoGuardado = medicoRepository.save(medico);
+
+        log.info("Médico guardado correctamente con id: {}",
+                medicoGuardado.getIdMedico());
+
+        return mapToResponseDTO(medicoGuardado);
     }
 
-    public Medico actualizarMedico(Integer id, Medico medicoActualizado) {
+    public MedicoResponseDTO actualizarMedico(Integer id, MedicoRequestDTO dto) {
+        Medico medico = buscarEntidadPorId(id);
+        Especialidad especialidad = buscarEspecialidadPorId(dto.getEspecialidadId());
 
-        try {
+        medico.setRut(dto.getRut());
+        medico.setNombre(dto.getNombre());
+        medico.setApellido(dto.getApellido());
+        medico.setCorreo(dto.getCorreo());
+        medico.setTelefono(dto.getTelefono());
+        medico.setEspecialidad(especialidad);
 
-            Medico medico = buscarPorId(id);
+        Medico medicoActualizado = medicoRepository.save(medico);
 
-            medico.setRut(medicoActualizado.getRut());
-            medico.setNombre(medicoActualizado.getNombre());
-            medico.setApellido(medicoActualizado.getApellido());
-            medico.setCorreo(medicoActualizado.getCorreo());
-            medico.setTelefono(medicoActualizado.getTelefono());
-            medico.setEspecialidad(medicoActualizado.getEspecialidad());
+        log.info("Médico id {} actualizado correctamente.", id);
 
-            return medicoRepository.save(medico);
-
-        } catch (RecursoNoEncontradoException e) {
-            throw e;
-
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error al actualizar el médico: " + e.getMessage());
-        }
+        return mapToResponseDTO(medicoActualizado);
     }
 
     public void eliminarMedico(Integer id) {
+        Medico medico = buscarEntidadPorId(id);
+        medicoRepository.delete(medico);
 
-        try {
-
-            Medico medico = buscarPorId(id);
-
-            medicoRepository.delete(medico);
-
-        } catch (RecursoNoEncontradoException e) {
-            throw e;
-
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error al eliminar el médico: " + e.getMessage());
-        }
+        log.info("Médico id {} eliminado correctamente.", id);
     }
 }

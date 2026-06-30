@@ -1,98 +1,134 @@
 package com.duoc.atencionesmedicas.centromedico.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
+import com.duoc.atencionesmedicas.centromedico.dto.CentroMedicoRequestDTO;
+import com.duoc.atencionesmedicas.centromedico.dto.CentroMedicoResponseDTO;
 import com.duoc.atencionesmedicas.centromedico.exception.RecursoNoEncontradoException;
 import com.duoc.atencionesmedicas.centromedico.model.CentroMedico;
 import com.duoc.atencionesmedicas.centromedico.repository.CentroMedicoRepository;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CentroMedicoService {
 
     private final CentroMedicoRepository centroMedicoRepository;
 
-    public List<CentroMedico> listarCentros() {
-        return centroMedicoRepository.findAll();
+    private CentroMedicoResponseDTO mapToResponseDTO(CentroMedico centro) {
+        return new CentroMedicoResponseDTO(
+                centro.getIdCentro(),
+                centro.getNombre(),
+                centro.getDireccion(),
+                centro.getComuna(),
+                centro.getTelefono(),
+                centro.getHorario(),
+                centro.getEstado()
+        );
     }
 
-    public CentroMedico buscarPorId(Integer id) {
+    private CentroMedico buscarEntidadPorId(Integer id) {
         return centroMedicoRepository.findById(id)
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException("Centro médico no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Centro médico no encontrado con id: " + id));
     }
 
-    public List<CentroMedico> buscarPorComuna(String comuna) {
+    public List<CentroMedicoResponseDTO> listarCentros() {
+        return centroMedicoRepository.findAll()
+                .stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public CentroMedicoResponseDTO buscarPorId(Integer id) {
+        CentroMedico centro = buscarEntidadPorId(id);
+        return mapToResponseDTO(centro);
+    }
+
+    public List<CentroMedicoResponseDTO> buscarPorComuna(String comuna) {
         List<CentroMedico> centros = centroMedicoRepository.findByComuna(comuna);
 
         if (centros.isEmpty()) {
-            throw new RecursoNoEncontradoException("No existen centros médicos en la comuna: " + comuna);
+            throw new RecursoNoEncontradoException(
+                    "No existen centros médicos en la comuna: " + comuna);
         }
 
-        return centros;
+        return centros.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<CentroMedico> buscarPorEstado(String estado) {
+    public List<CentroMedicoResponseDTO> buscarPorEstado(String estado) {
         List<CentroMedico> centros = centroMedicoRepository.findByEstado(estado);
 
         if (centros.isEmpty()) {
-            throw new RecursoNoEncontradoException("No existen centros médicos con estado: " + estado);
+            throw new RecursoNoEncontradoException(
+                    "No existen centros médicos con estado: " + estado);
         }
 
-        return centros;
+        return centros.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<CentroMedico> buscarPorNombre(String nombre) {
-        List<CentroMedico> centros = centroMedicoRepository.findByNombreContainingIgnoreCase(nombre);
+    public List<CentroMedicoResponseDTO> buscarPorNombre(String nombre) {
+        List<CentroMedico> centros =
+                centroMedicoRepository.findByNombreContainingIgnoreCase(nombre);
 
         if (centros.isEmpty()) {
-            throw new RecursoNoEncontradoException("No existen centros médicos con nombre: " + nombre);
+            throw new RecursoNoEncontradoException(
+                    "No existen centros médicos con nombre: " + nombre);
         }
 
-        return centros;
+        return centros.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public CentroMedico guardarCentro(CentroMedico centroMedico) {
-        try {
-            return centroMedicoRepository.save(centroMedico);
-        } catch (Exception e) {
-            throw new RuntimeException("Error al guardar el centro médico: " + e.getMessage());
-        }
+    public CentroMedicoResponseDTO guardarCentro(CentroMedicoRequestDTO dto) {
+        CentroMedico centro = new CentroMedico(
+                null,
+                dto.getNombre(),
+                dto.getDireccion(),
+                dto.getComuna(),
+                dto.getTelefono(),
+                dto.getHorario(),
+                dto.getEstado()
+        );
+
+        CentroMedico centroGuardado = centroMedicoRepository.save(centro);
+
+        log.info("Centro médico guardado correctamente con id: {}",
+                centroGuardado.getIdCentro());
+
+        return mapToResponseDTO(centroGuardado);
     }
 
-    public CentroMedico actualizarCentro(Integer id, CentroMedico centroActualizado) {
-        try {
-            CentroMedico centro = buscarPorId(id);
+    public CentroMedicoResponseDTO actualizarCentro(Integer id, CentroMedicoRequestDTO dto) {
+        CentroMedico centro = buscarEntidadPorId(id);
 
-            centro.setNombre(centroActualizado.getNombre());
-            centro.setDireccion(centroActualizado.getDireccion());
-            centro.setComuna(centroActualizado.getComuna());
-            centro.setTelefono(centroActualizado.getTelefono());
-            centro.setHorario(centroActualizado.getHorario());
-            centro.setEstado(centroActualizado.getEstado());
+        centro.setNombre(dto.getNombre());
+        centro.setDireccion(dto.getDireccion());
+        centro.setComuna(dto.getComuna());
+        centro.setTelefono(dto.getTelefono());
+        centro.setHorario(dto.getHorario());
+        centro.setEstado(dto.getEstado());
 
-            return centroMedicoRepository.save(centro);
+        CentroMedico centroActualizado = centroMedicoRepository.save(centro);
 
-        } catch (RecursoNoEncontradoException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Error al actualizar el centro médico: " + e.getMessage());
-        }
+        log.info("Centro médico id {} actualizado correctamente.", id);
+
+        return mapToResponseDTO(centroActualizado);
     }
 
     public void eliminarCentro(Integer id) {
-        try {
-            CentroMedico centro = buscarPorId(id);
-            centroMedicoRepository.delete(centro);
+        CentroMedico centro = buscarEntidadPorId(id);
+        centroMedicoRepository.delete(centro);
 
-        } catch (RecursoNoEncontradoException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Error al eliminar el centro médico: " + e.getMessage());
-        }
+        log.info("Centro médico id {} eliminado correctamente.", id);
     }
 }

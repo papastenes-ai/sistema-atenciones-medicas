@@ -1,6 +1,7 @@
 package com.duoc.atencionesmedicas.paciente.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,6 +16,7 @@ public class Direccion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_direccion")
     private Integer idDireccion;
 
     @Column(nullable = false)

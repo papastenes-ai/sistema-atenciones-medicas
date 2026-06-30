@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.duoc.atencionesmedicas.examen.model.Examen;
-
+//// Repository JPA para operaciones CRUD automáticas
 @Repository
 public interface ExamenRepository extends JpaRepository<Examen, Integer> {
 
