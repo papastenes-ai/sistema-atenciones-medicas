@@ -191,12 +191,12 @@ public class AtencionService {
             );
 
         } catch (FeignException.NotFound e) {
-            log.warn("No se encontró información remota para construir el detalle de atención id {}.", id);
+            log.warn("No se encontró información remota para construir el detalle de atención id {}. Error: {}", id, e.getMessage());
             throw new ReglaNegocioException(
                     "No se pudo construir el detalle. El paciente o médico asociado no existe.");
 
         } catch (FeignException e) {
-            log.error("Error al consultar servicios remotos para detalle de atención: {}", e.getMessage());
+            log.error("Error al consultar servicios remotos para detalle de atención id {}: {}", id, e.getMessage());
             throw new ReglaNegocioException(
                     "No se pudo construir el detalle de la atención. Servicio remoto no disponible.");
         }

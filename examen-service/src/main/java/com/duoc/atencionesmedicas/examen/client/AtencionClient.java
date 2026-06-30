@@ -5,9 +5,12 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "atencion-service")
+@FeignClient(
+        name = "atencion-service",
+        url = "${ATENCION_SERVICE_URL:http://localhost:8083}"
+)
 public interface AtencionClient {
 
-    @GetMapping("/api/atenciones/{id}/detalle")
-    AtencionDetalleDTO obtenerAtencionPorId(@PathVariable Integer id);
+    @GetMapping("/api/atenciones/{id}")
+    AtencionDetalleDTO obtenerAtencionPorId(@PathVariable("id") Integer id);
 }

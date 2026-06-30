@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -232,4 +233,66 @@ class ExamenServiceTest {
         verify(examenRepository, times(1)).findById(1);
         verify(atencionClient, times(1)).obtenerAtencionPorId(3);
     }
+    
+    @Test
+void guardarExamen_cuandoAtencionNoExiste_noDebeGuardarExamen() {
+    // Given
+    ExamenRequestDTO dto = new ExamenRequestDTO();
+    dto.setNombreExamen("Resonancia");
+    dto.setResultado("Pendiente");
+    dto.setFechaExamen("2026-06-30");
+    dto.setAtencionId(999);
+
+    when(atencionClient.obtenerAtencionPorId(999))
+            .thenThrow(new RuntimeException("Atención no encontrada"));
+
+    // When - Then
+    RuntimeException exception = assertThrows(
+            RuntimeException.class,
+            () -> examenService.guardarExamen(dto)
+    );
+
+    assertNotNull(exception);
+    verify(atencionClient, times(1)).obtenerAtencionPorId(999);
+    verify(examenRepository, never()).save(any(Examen.class));
+}
+
+@Test
+void buscarPorId_cuandoNoExiste_deberiaLanzarExcepcion() {
+    // Given
+    when(examenRepository.findById(99)).thenReturn(Optional.empty());
+
+    // When - Then
+    RuntimeException exception = assertThrows(
+            RuntimeException.class,
+            () -> examenService.buscarPorId(99)
+    );
+
+    assertNotNull(exception);
+    verify(examenRepository, times(1)).findById(99);
+}
+
+    @Test
+    void actualizarExamen_cuandoNoExiste_noDebeGuardar() {
+        // Given
+        ExamenRequestDTO dto = new ExamenRequestDTO();
+        dto.setNombreExamen("Examen actualizado");
+        dto.setResultado("Resultado actualizado");
+        dto.setFechaExamen("2026-06-30");
+        dto.setAtencionId(1);
+
+        when(examenRepository.findById(99)).thenReturn(Optional.empty());
+
+        // When - Then
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> examenService.actualizarExamen(99, dto)
+        );
+
+        assertNotNull(exception);
+        verify(examenRepository, times(1)).findById(99);
+        verify(examenRepository, never()).save(any(Examen.class));
+        verify(atencionClient, never()).obtenerAtencionPorId(anyInt());
+    }
+
 }

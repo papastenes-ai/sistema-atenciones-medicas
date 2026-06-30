@@ -1,9 +1,18 @@
+FROM eclipse-temurin:17-jdk-jammy AS build
+
+WORKDIR /app
+
+COPY . .
+
+RUN chmod +x mvnw
+RUN ./mvnw clean package -DskipTests
+
 FROM eclipse-temurin:17-jre-jammy
 
-ARG JAR_FILE=target/atencion-service-0.0.1-SNAPSHOT.jar
+WORKDIR /app
 
-COPY ${JAR_FILE} app_atencion.jar
+COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8083
 
-ENTRYPOINT ["java", "-jar", "app_atencion.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
