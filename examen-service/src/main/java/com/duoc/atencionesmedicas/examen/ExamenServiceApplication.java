@@ -11,7 +11,6 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 public class ExamenServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(
-                ExamenServiceApplication.class, args);
+        SpringApplication.run(ExamenServiceApplication.class, args);
     }
 }
